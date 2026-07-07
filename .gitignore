@@ -3,25 +3,27 @@
 
 # Server
 
-SERVER_IP=172.16.17.X
+SERVER_IP=172.30.59.11
 
 
 # PostgreSQL
 
-PG_HOST=172.16.17.X
+PG_HOST=172.17.0.1
 
-PG_PORT=5432
+PG_PORT=5678
 
-PG_USER=your_db_user
+PG_USER=postgres
 
-PG_PASSWORD=your_db_password
+PG_PASSWORD=intern1
 
-PG_DATABASE=your_database_name
+PG_DATABASE=postgres
 
 
 # Evolution API
 
 EVOLUTION_API_KEY=your_evolution_api_key
+
+AUTHENTICATION_API_KEY=718ddcda02178549df29fe0e0be669bfa197be44d67598341edbf94dda984f5f
 
 EVOLUTION_INSTANCE=your_instance_name
 
