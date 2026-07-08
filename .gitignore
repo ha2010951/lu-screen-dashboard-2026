@@ -1,4 +1,4 @@
-".env"
+# Copy this to .env and fill in real values. NEVER commit .env itself.
 
 
 # Server
@@ -8,22 +8,20 @@ SERVER_IP=172.30.59.13
 
 # PostgreSQL
 
-PG_HOST=172.17.0.1
+PG_HOST=172.30.59.13
 
-PG_PORT=5678
+PG_PORT=5432
 
-PG_USER=postgres
+PG_USER=lu_admin
 
-PG_PASSWORD=intern1
+PG_PASSWORD=intern1@2026
 
-PG_DATABASE=postgres
+PG_DATABASE=lu_dashboard
 
 
 # Evolution API
 
-EVOLUTION_API_KEY=your_evolution_api_key
-
-AUTHENTICATION_API_KEY=718ddcda02178549df29fe0e0be669bfa197be44d67598341edbf94dda984f5f
+EVOLUTION_API_KEY=lu_evolution_key_123
 
 EVOLUTION_INSTANCE=your_instance_name
 
