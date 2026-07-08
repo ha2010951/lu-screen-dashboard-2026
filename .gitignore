@@ -3,7 +3,7 @@
 
 # Server
 
-SERVER_IP=172.30.59.11
+SERVER_IP=172.30.59.13
 
 
 # PostgreSQL
