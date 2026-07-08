@@ -33,7 +33,7 @@ GROQ_API_KEY=gsk_your_groq_api_key_here
 
 # WAHA
 
-WAHA_API_KEY=set_a_strong_random_string
+WAHA_API_KEY=lu_waha_key_123
 
 
 # Backend
