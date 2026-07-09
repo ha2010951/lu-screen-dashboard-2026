@@ -25,6 +25,12 @@
  *   3. Confirmed on real hardware: power_on DOES work over TCP/IP
  *      from Standby (contradicts an earlier note in the todo doc —
  *      worth re-testing specifically from deep Sleep too).
+ *   4. FIXED (verified on real panel 172.21.65.212, response F6 01 02 01 FA 6F):
+ *      parsePowerStatus/parseVolume/parseMuteStatus were reading
+ *      buf[buf.length - 2], which is the CHECKSUM byte, not the actual
+ *      data byte. The real data byte sits at buf[buf.length - 3]
+ *      (before checksum AND terminator). Was always returning "unknown"
+ *      / wrong values even when the panel responded correctly.
  */
 
 const net = require("net");
@@ -132,20 +138,27 @@ function sendCommand(ip, cmdOrName, timeoutMs = 5000) {
   });
 }
 
+/**
+ * Frame: F6 [cmd] [type] [data] [checksum] 6F
+ * The data byte sits 3 bytes from the end (before checksum + terminator),
+ * NOT 2 bytes from the end — that position is the checksum byte.
+ * Verified on real hardware: get_power response F6 01 02 01 FA 6F ->
+ * data byte 0x01 ("on") is at index 3 = buf.length - 3.
+ */
 function parsePowerStatus(buf) {
-  if (!buf || buf.length < 2) return "unknown";
+  if (!buf || buf.length < 3) return "unknown";
   const map = { 0x01: "on", 0x02: "standby", 0x03: "sleep" };
-  return map[buf[buf.length - 2]] || "unknown";
+  return map[buf[buf.length - 3]] || "unknown";
 }
 
 function parseVolume(buf) {
-  if (!buf || buf.length < 2) return 0;
-  return buf[buf.length - 2];
+  if (!buf || buf.length < 3) return 0;
+  return buf[buf.length - 3];
 }
 
 function parseMuteStatus(buf) {
-  if (!buf || buf.length < 2) return false;
-  return buf[buf.length - 2] === 0x01;
+  if (!buf || buf.length < 3) return false;
+  return buf[buf.length - 3] === 0x01;
 }
 
 /**
