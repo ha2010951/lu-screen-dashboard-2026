@@ -4,10 +4,10 @@
   "description": "Testing git push from VM2",
   "main": "index.js",
   "scripts": {
-  "dev": "nodemon src/index.js",
-  "start": "node src/index.js",
-  "test": "echo \"Error: no test specified\" && exit 1"
-},
+    "dev": "nodemon src/index.js",
+    "start": "node src/index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/ha2010951/lu-screen-dashboard-2026.git"
