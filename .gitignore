@@ -1,3 +1,43 @@
-".env"
+# Copy this to .env and fill in real values. NEVER commit .env itself.
 
-AUTHENTICATION_API_KEY=42c9162c77840b296000fb0b0cd5aaf00985963b15a98bd41c672b86d8614c62 #Evolution API Key
+
+# Server
+
+SERVER_IP=172.30.59.13
+
+
+# PostgreSQL
+
+PG_HOST=172.30.59.13
+
+PG_PORT=5432
+
+PG_USER=lu_admin
+
+PG_PASSWORD=intern1@2026
+
+PG_DATABASE=lu_dashboard
+
+
+# Evolution API
+
+EVOLUTION_API_KEY=lu_evolution_key_123
+
+EVOLUTION_INSTANCE=your_instance_name
+
+
+# Groq
+
+GROQ_API_KEY=gsk_your_groq_api_key_here
+
+
+# WAHA
+
+WAHA_API_KEY=lu_waha_key_123
+
+
+# Backend
+
+PORT=4000
+
+JWT_SECRET=set_a_random_string_for_da
