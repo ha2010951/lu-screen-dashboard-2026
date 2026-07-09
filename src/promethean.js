@@ -71,11 +71,10 @@ const COMMANDS = {
   get_freeze:       Buffer.from([0xF6, 0x32, 0x02, 0x00, 0x2A, 0x6F]),
 };
 
-// Flagged UNVERIFIED in Dashboard_todo.md — USB-C1's code collides with
-// HDMI3's. Do not trust in production until confirmed on real hardware.
+// Flagged UNVERIFIED in Dashboard_todo.md. Do not trust in production
+// until confirmed on real hardware.
 const COMMANDS_UNVERIFIED = {
-  source_usbc1: Buffer.from([0xF6, 0x30, 0x01, 0x13, 0x3A, 0x6F]),
-  source_usbc2: Buffer.from([0xF6, 0x30, 0x01, 0x0C, 0x33, 0x6F]),
+  source_usbc: Buffer.from([0xF6, 0x30, 0x01, 0x0C, 0x33, 0x6F]),
 };
 
 function checksum(cmd, type, data) {
