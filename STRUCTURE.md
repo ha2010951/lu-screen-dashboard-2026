@@ -12,6 +12,7 @@ lu-screen-dashboard-2026/
 ├── STRUCTURE.md
 ├── .env.example
 ├── .gitignore
+├── src/                      (empty, unused — see note below)
 └── backend/
     ├── Dockerfile
     ├── package.json
@@ -19,7 +20,6 @@ lu-screen-dashboard-2026/
     └── src/
         ├── index.js
         ├── db.js
-        ├── poller.js
         ├── test-db.js
         ├── promethean.js
         └── routes/
@@ -33,18 +33,16 @@ lu-screen-dashboard-2026/
   built this (Person A: hardware/`promethean.js`, Person B: DB layer,
   Person C: HTTP/API layer). Useful for understanding *why* the code is
   divided the way it is and which contracts exist between the pieces.
+  Note: it describes these files as living under `src/` — that's now out
+  of date, see the "orphaned files" note below.
 - **.env.example** — template for the real `.env` file (never committed).
   Documents every env var the backend expects: Postgres connection,
   Evolution API (WhatsApp), Groq, WAHA, server port/JWT secret.
-- **.gitignore** — standard ignore rules (`.env`, `node_modules/`, logs,
+- **.gitignore** — ignore rules (`.env`, `node_modules/`, logs,
   editor/OS files).
-
-All real backend code now lives under `backend/src/` — `db.js`,
-`promethean.js`, `test-db.js`, and `poller.js` previously sat at the repo
-root (a leftover from before `backend/` was scaffolded); they've been
-moved in to match this doc and to share `backend/`'s single
-`package.json`/`node_modules` instead of duplicating `dotenv`+`pg` in a
-second one at the root.
+- **src/** — empty leftover directory at the repo root. Not used by
+  anything; all real backend code lives under `backend/src/`. Safe to
+  ignore or delete.
 
 ## backend/
 
@@ -58,11 +56,9 @@ right now (no frontend yet).
 
 ### backend/src/
 
-- **index.js** — Express app entry point. Loads `.env` (explicit path,
-  resolved from the repo root since this file lives two directories
-  down), wires up `cors` and JSON body parsing, exposes `GET /api/health`,
-  and mounts the panels router at `/api/panels`. Starts listening on
-  `PORT` (default 4000).
+- **index.js** — Express app entry point. Loads `.env`, wires up `cors`
+  and JSON body parsing, exposes `GET /api/health`, and mounts the panels
+  router at `/api/panels`. Starts listening on `PORT` (default 4000).
 
 - **db.js** — the single shared `pg` Pool for the app. Reads connection
   config from `.env` (`PG_HOST`, `PG_PORT`, `PG_USER`, `PG_PASSWORD`,
@@ -91,10 +87,9 @@ right now (no frontend yet).
   - `parsePowerStatus/parseVolume/parseMuteStatus/parseAscii(buf)` —
     decode a response buffer into a usable value.
   - `COMMANDS` — known-good command frames (power, volume, mute, source
-    select — including USB-C, now confirmed on real hardware — freeze,
-    firmware/serial/model queries).
-  - `COMMANDS_UNVERIFIED` — currently empty; kept as the home for any
-    future codes that still need on-site confirmation.
+    select, freeze, firmware/serial/model queries).
+  - `COMMANDS_UNVERIFIED` — commands flagged as not yet confirmed on
+    real hardware (currently just USB-C source select).
   - Also runnable directly as a CLI test harness:
     `node promethean.js <panel_ip> <command> [value]`.
 
@@ -108,6 +103,10 @@ right now (no frontend yet).
 
 ## Known gaps / in-progress work (from TASK_SPLIT.md)
 
+- `poller.js` (DB layer) — not yet created. Should loop every 30s over
+  `panels`, call `promethean.sendCommand()` per panel, and write results
+  into `panel_status` via `db.js`.
 - `routes/panels.js` still uses fake in-memory data — needs to be swapped
-  over to real `db.js`/`poller.js`-fed queries once all three pieces are
-  confirmed working together (the sync point in `TASK_SPLIT.md`).
+  over to real `db.js` queries once the poller is confirmed working.
+- USB-C source command codes in `promethean.js` are unverified against
+  real hardware.
