@@ -19,7 +19,10 @@
  * not inside a container.
  */
 
-require("dotenv").config();
+// Explicit path: the single .env lives at the repo root, two levels up
+// from backend/src/ — without this, dotenv only finds it when the
+// process happens to be launched with cwd == repo root.
+require("dotenv").config({ path: require("path").resolve(__dirname, "../../.env") });
 const { Pool } = require("pg");
 
 const pool = new Pool({

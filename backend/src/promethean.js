@@ -69,13 +69,17 @@ const COMMANDS = {
   freeze_on:        Buffer.from([0xF6, 0x32, 0x01, 0x01, 0x2A, 0x6F]),
   freeze_off:       Buffer.from([0xF6, 0x32, 0x01, 0x02, 0x2B, 0x6F]),
   get_freeze:       Buffer.from([0xF6, 0x32, 0x02, 0x00, 0x2A, 0x6F]),
+
+  // Confirmed on real hardware by Person A: selecting USB-C on the panel
+  // and running get_source returns this byte (0x0C), distinct from
+  // HDMI3 (0x13) — the earlier name collision is resolved and this code
+  // is no longer UNVERIFIED.
+  source_usbc:      Buffer.from([0xF6, 0x30, 0x01, 0x0C, 0x33, 0x6F]),
 };
 
-// Flagged UNVERIFIED in Dashboard_todo.md. Do not trust in production
-// until confirmed on real hardware.
-const COMMANDS_UNVERIFIED = {
-  source_usbc: Buffer.from([0xF6, 0x30, 0x01, 0x0C, 0x33, 0x6F]),
-};
+// Nothing left here for now — kept as the home for any future codes that
+// still need on-site confirmation before being trusted in production.
+const COMMANDS_UNVERIFIED = {};
 
 function checksum(cmd, type, data) {
   // MUST include the 0xF6 head byte — this was the bug in the original draft.
