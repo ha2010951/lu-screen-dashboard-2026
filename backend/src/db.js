@@ -12,8 +12,7 @@
  *
  * Connection details come entirely from .env (see .env.example).
  * For local dev: point PG_HOST/PG_PORT at an SSH tunnel to the real
- * server Postgres (e.g. PG_HOST=localhost, PG_PORT=5433 via
- * `ssh -L 5433:localhost:5432 intern1@<server_ip>`).
+ * server Postgres
  * On the server itself: PG_HOST will instead be the Docker bridge
  * gateway (e.g. 172.17.0.1) since Postgres runs natively on the host,
  * not inside a container.
