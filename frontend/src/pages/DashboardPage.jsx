@@ -76,7 +76,11 @@ function normalizePanel(panel) {
       panel.screen_name ||
       panel.name ||
       "Promethean Screen",
-    status: panel.status || "Unknown",
+    status:
+      panel.status ||
+      panel.power ||
+      panel.power_status ||
+      "Unknown",
     power:
       panel.power ||
       panel.power_status ||

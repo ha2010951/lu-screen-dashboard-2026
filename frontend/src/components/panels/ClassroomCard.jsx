@@ -8,15 +8,45 @@ import {
   Typography,
 } from "@mui/material";
 
+function getStatusDetails(status) {
+  const value = String(status || "").toLowerCase();
+
+  if (value === "on" || value === "online") {
+    return {
+      label: "Online",
+      color: "success",
+    };
+  }
+
+  if (value === "standby") {
+    return {
+      label: "Standby",
+      color: "warning",
+    };
+  }
+
+  if (value === "sleep") {
+    return {
+      label: "Sleep",
+      color: "info",
+    };
+  }
+
+  if (value === "off" || value === "offline") {
+    return {
+      label: "Offline",
+      color: "error",
+    };
+  }
+
+  return {
+    label: "Unknown",
+    color: "default",
+  };
+}
+
 function ClassroomCard({ classroom, onOpen }) {
-  const statusColor =
-    classroom.status === "Online"
-      ? "success"
-      : classroom.status === "Standby"
-        ? "warning"
-        : classroom.status === "Sleep"
-          ? "info"
-          : "error";
+  const status = getStatusDetails(classroom.status);
 
   return (
     <Card
@@ -43,8 +73,8 @@ function ClassroomCard({ classroom, onOpen }) {
             </Typography>
 
             <Chip
-              label={classroom.status}
-              color={statusColor}
+              label={status.label}
+              color={status.color}
               sx={{ alignSelf: "flex-start" }}
             />
 
