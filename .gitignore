@@ -1,7 +1,7 @@
 # Environment variables (never commit real secrets)
 
 .env.local
-
+.env
 # Node
 node_modules/
 npm-debug.log*
