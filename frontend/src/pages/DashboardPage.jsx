@@ -145,6 +145,10 @@ function DashboardPage() {
       )
     ).length;
 
+    const standby = classrooms.filter(
+      (panel) => String(panel.status).toLowerCase() === "standby"
+    ).length;
+
     const offline = classrooms.filter((panel) =>
       ["offline", "off", "unknown"].includes(
         String(panel.status).toLowerCase()
@@ -154,6 +158,7 @@ function DashboardPage() {
     return {
       total: classrooms.length,
       online,
+      standby,
       offline,
     };
   }, [classrooms]);
@@ -288,6 +293,31 @@ function DashboardPage() {
                 py: 1.5,
                 borderRadius: 3,
                 backgroundColor: (theme) =>
+                  theme.palette.mode === "dark" ? "rgba(237,108,2,0.12)" : "#fff7eb",
+                border: "1px solid",
+                borderColor: (theme) =>
+                  theme.palette.mode === "dark" ? "rgba(237,108,2,0.3)" : "#f3ddb8",
+                minWidth: 95,
+              }}
+            >
+              <Typography variant="caption" color="warning.main">
+                Standby
+              </Typography>
+              <Typography
+                variant="h5"
+                fontWeight={700}
+                color="warning.main"
+              >
+                {summary.standby}
+              </Typography>
+            </Box>
+
+            <Box
+              sx={{
+                px: 2.5,
+                py: 1.5,
+                borderRadius: 3,
+                backgroundColor: (theme) =>
                   theme.palette.mode === "dark" ? "rgba(239,83,80,0.12)" : "#fff4f2",
                 border: "1px solid",
                 borderColor: (theme) =>
@@ -296,7 +326,7 @@ function DashboardPage() {
               }}
             >
               <Typography variant="caption" color="error.main">
-                Unavailable
+                Offline
               </Typography>
               <Typography
                 variant="h5"

@@ -46,10 +46,10 @@ function getStatusDetails(status, isDark) {
   }
 
   return {
-    label: "Unavailable",
-    color: "default",
-    accent: isDark ? "#9fb0c3" : "#7b8794",
-    background: isDark ? "rgba(255,255,255,0.06)" : "#f4f6f8",
+    label: "Offline",
+    color: "error",
+    accent: isDark ? "#ef5350" : "#d32f2f",
+    background: isDark ? "rgba(239,83,80,0.14)" : "#fdeceb",
   };
 }
 
