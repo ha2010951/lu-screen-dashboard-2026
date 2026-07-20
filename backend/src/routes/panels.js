@@ -1,190 +1,286 @@
 const express = require("express");
 const router = express.Router();
 const pool = require("../db");
-const promethean = require("../promethean");
-const { parseSource } = require("../poller");
 
-// Maps the source names your frontend's dropdown uses to the actual
-// RS-232 command names in promethean.js's COMMANDS object.
-// ASSUMPTION: adjust this if your "Change source" button sends different values.
-const SOURCE_COMMAND_MAP = {
-  HDMI1: "source_hdmi1",
-  HDMI2: "source_hdmi2",
-  HDMI3: "source_hdmi3",
-  "USB-C": "source_usbc",
-  VGA: "source_vga1",
-  DP: "source_dp",
-  AV: "source_av",
-};
+const {
+  sendCommand,
+  buildVolumeCommand,
+} = require("../promethean");
 
-async function readLiveStatus(ip_address) {
-  const [powerResp, volumeResp, muteResp, sourceResp] = await Promise.all([
-    promethean.sendCommand(ip_address, "get_power"),
-    promethean.sendCommand(ip_address, "get_volume"),
-    promethean.sendCommand(ip_address, "get_mute"),
-    promethean.sendCommand(ip_address, "get_source"),
-  ]);
+const {
+  pollAllPanels,
+} = require("../poller");
 
-  return {
-    power: promethean.parsePowerStatus(powerResp),
-    volume: promethean.parseVolume(volumeResp),
-    muted: promethean.parseMuteStatus(muteResp),
-    source: parseSource(sourceResp),
-  };
+function wait(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-async function upsertStatus(panelId, status) {
-  await pool.query(
-    `INSERT INTO panel_status (panel_id, power, volume, muted, source, last_polled)
-     VALUES ($1, $2, $3, $4, $5, NOW())
-     ON CONFLICT (panel_id)
-     DO UPDATE SET power = $2, volume = $3, muted = $4, source = $5, last_polled = NOW()`,
-    [panelId, status.power, status.volume, status.muted, status.source]
+async function getPanel(panelId) {
+  const { rows } = await pool.query(
+    `
+      SELECT
+        p.id,
+        p.name,
+        p.room,
+        p.building,
+        p.ip_address,
+        p.model,
+        p.serial_no,
+        s.power,
+        s.volume,
+        s.muted,
+        s.source,
+        s.last_polled
+      FROM panels p
+      LEFT JOIN panel_status s
+        ON p.id = s.panel_id
+      WHERE p.id = $1
+    `,
+    [panelId]
   );
+
+  return rows[0] || null;
 }
 
-// GET all panels with their latest status
+function normalizeSource(value) {
+  const source = String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[\s-]/g, "")
+    .replace(/^source_/, "");
+
+  const sourceMap = {
+    hdmi1: "source_hdmi1",
+    hdmi2: "source_hdmi2",
+    hdmi3: "source_hdmi3",
+    usbc: "source_usbc",
+    vga: "source_vga1",
+    vga1: "source_vga1",
+    dp: "source_dp",
+    displayport: "source_dp",
+    ops: "source_ops",
+    android: "source_android",
+    av: "source_av",
+  };
+
+  return sourceMap[source];
+}
+
+// GET all panels with their latest stored status
 router.get("/", async (req, res) => {
   try {
     const { rows } = await pool.query(`
       SELECT
-        p.id, p.name, p.room, p.building, p.ip_address,
-        s.power, s.volume, s.muted, s.source, s.last_polled
+        p.id,
+        p.name,
+        p.room,
+        p.building,
+        p.ip_address,
+        p.model,
+        p.serial_no,
+        s.power,
+        s.volume,
+        s.muted,
+        s.source,
+        s.last_polled
       FROM panels p
-      LEFT JOIN panel_status s ON p.id = s.panel_id
+      LEFT JOIN panel_status s
+        ON p.id = s.panel_id
       ORDER BY p.room, p.name
     `);
 
     res.json(rows);
-  } catch (err) {
-    console.error("Failed to load panels:", err.message);
-    res.status(500).json({ ok: false, error: "Failed to load panels" });
+  } catch (error) {
+    console.error("Failed to load panels:", error.message);
+
+    res.status(500).json({
+      ok: false,
+      error: "Failed to load panels",
+    });
   }
 });
 
-// Send command to a single panel — now actually talks to the hardware
+// Send a command to one physical Promethean screen
 router.post("/:id/command", async (req, res) => {
   const panelId = Number(req.params.id);
   const { command, value } = req.body;
 
-  try {
-    const { rows } = await pool.query(`SELECT * FROM panels WHERE id = $1`, [panelId]);
+  if (!Number.isInteger(panelId)) {
+    return res.status(400).json({
+      ok: false,
+      error: "Invalid panel ID",
+    });
+  }
 
-    if (rows.length === 0) {
-      return res.status(404).json({ ok: false, error: "Panel not found" });
+  if (!command) {
+    return res.status(400).json({
+      ok: false,
+      error: "Command is required",
+    });
+  }
+
+  try {
+    const panel = await getPanel(panelId);
+
+    if (!panel) {
+      return res.status(404).json({
+        ok: false,
+        error: "Panel not found",
+      });
     }
 
-    const panel = rows[0];
-    const { ip_address } = panel;
-    let status;
+    const ip = panel.ip_address;
 
-    try {
-      switch (command) {
-        case "power_on":
-          await promethean.sendCommand(ip_address, "power_on");
-          break;
+    switch (command) {
+      case "power_on":
+        await sendCommand(ip, "power_on");
+        break;
 
-        case "power_off":
-          // No dedicated "power_off" RS-232 command exists — standby is
-          // used here since sleep mode blocks further RS-232 commands.
-          await promethean.sendCommand(ip_address, "power_standby");
-          break;
+      case "power_off":
+      case "power_standby":
+        // Promethean uses standby as the normal power-off command.
+        await sendCommand(ip, "power_standby");
+        break;
 
-        case "mute_toggle": {
-          const { rows: statusRows } = await pool.query(
-            `SELECT muted FROM panel_status WHERE panel_id = $1`,
-            [panelId]
-          );
-          const currentlyMuted = statusRows[0]?.muted || false;
-          await promethean.sendCommand(
-            ip_address,
-            currentlyMuted ? "mute_off" : "mute_on"
-          );
-          break;
+      case "power_sleep":
+        await sendCommand(ip, "power_sleep");
+        break;
+
+      case "volume_up":
+        await sendCommand(ip, "volume_up");
+        break;
+
+      case "volume_down":
+        await sendCommand(ip, "volume_down");
+        break;
+
+      case "volume_set": {
+        const volume = Number(value);
+
+        if (!Number.isFinite(volume) || volume < 0 || volume > 100) {
+          return res.status(400).json({
+            ok: false,
+            error: "Volume must be between 0 and 100",
+          });
         }
 
-        case "volume_set": {
-          const vol = Number(value);
-          await promethean.sendCommand(ip_address, promethean.buildVolumeCommand(vol));
-          break;
-        }
-
-        case "source_set": {
-          const sourceCommand = SOURCE_COMMAND_MAP[value];
-          if (!sourceCommand) {
-            return res
-              .status(400)
-              .json({ ok: false, error: `Unknown source: ${value}` });
-          }
-          await promethean.sendCommand(ip_address, sourceCommand);
-          break;
-        }
-
-        case "refresh_status":
-          // No control command — just re-read below.
-          break;
-
-        default:
-          return res
-            .status(400)
-            .json({ ok: false, error: `Unknown command: ${command}` });
+        await sendCommand(ip, buildVolumeCommand(volume));
+        break;
       }
 
-      status = await readLiveStatus(ip_address);
-      await upsertStatus(panelId, status);
-    } catch (hardwareError) {
-      console.warn(
-        `[command] panel ${panelId} (${ip_address}) unreachable:`,
-        hardwareError.message
-      );
+      case "mute_toggle": {
+        const muteCommand = panel.muted ? "mute_off" : "mute_on";
+        await sendCommand(ip, muteCommand);
+        break;
+      }
 
-      status = { power: "unknown", volume: 0, muted: false, source: "unknown" };
-      await upsertStatus(panelId, status);
+      case "mute_on":
+        await sendCommand(ip, "mute_on");
+        break;
 
-      return res.status(200).json({
+      case "mute_off":
+        await sendCommand(ip, "mute_off");
+        break;
+
+      case "source_set": {
+        const sourceCommand = normalizeSource(value);
+
+        if (!sourceCommand) {
+          return res.status(400).json({
+            ok: false,
+            error: `Unsupported input source: ${value}`,
+          });
+        }
+
+        await sendCommand(ip, sourceCommand);
+        break;
+      }
+
+      case "refresh_status":
+        // No control command is required; polling below refreshes the status.
+        break;
+
+      default:
+        return res.status(400).json({
+          ok: false,
+          error: `Unsupported command: ${command}`,
+        });
+    }
+
+    // Give the physical display time to apply the command.
+    await wait(700);
+
+    // Poll screens and update panel_status in PostgreSQL.
+    await pollAllPanels();
+
+    const updatedPanel = await getPanel(panelId);
+
+    res.json({
+      ok: true,
+      message: "Command sent to Promethean screen",
+      command,
+      value: value ?? null,
+      panel: updatedPanel,
+    });
+  } catch (error) {
+    console.error(
+      `Panel ${panelId} command failed:`,
+      error.message
+    );
+
+    res.status(500).json({
+      ok: false,
+      error: error.message || "Failed to send panel command",
+    });
+  }
+});
+
+// Send a command to every screen in a classroom
+router.post("/command/room", async (req, res) => {
+  const { room, command, value } = req.body;
+
+  if (!room || !command) {
+    return res.status(400).json({
+      ok: false,
+      error: "Room and command are required",
+    });
+  }
+
+  try {
+    const { rows: panels } = await pool.query(
+      `
+        SELECT id
+        FROM panels
+        WHERE LOWER(room) = LOWER($1)
+        ORDER BY id
+      `,
+      [room]
+    );
+
+    if (panels.length === 0) {
+      return res.status(404).json({
         ok: false,
-        message: "Panel unreachable — command could not be confirmed",
-        panel: { ...panel, ...status },
-        command,
-        value: value ?? null,
+        error: "No panels found in this room",
       });
     }
 
     res.json({
       ok: true,
-      message: "Command executed",
-      panel: { ...panel, ...status },
-      command,
-      value: value ?? null,
-    });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ ok: false, error: "Database error" });
-  }
-});
-
-// Send command to every panel in a room
-router.post("/command/room", async (req, res) => {
-  const { room, command, value } = req.body;
-
-  try {
-    const { rows } = await pool.query(
-      `SELECT * FROM panels WHERE LOWER(room) = LOWER($1)`,
-      [room]
-    );
-
-    res.json({
-      ok: true,
-      message: "Room command received",
+      message:
+        "Use the individual panel command endpoint for each returned panel",
       room,
       command,
       value: value ?? null,
-      total: rows.length,
-      panels: rows,
+      total: panels.length,
+      panel_ids: panels.map((panel) => panel.id),
     });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ ok: false, error: "Database error" });
+  } catch (error) {
+    console.error("Room command failed:", error.message);
+
+    res.status(500).json({
+      ok: false,
+      error: "Room command failed",
+    });
   }
 });
 
