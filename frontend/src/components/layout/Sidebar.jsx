@@ -15,42 +15,26 @@ import {
   Stack,
   Toolbar,
   Typography,
+  useTheme,
 } from "@mui/material";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 
 const menuItems = [
-  {
-    text: "Dashboard",
-    description: "Screen overview",
-    path: "/",
-    icon: <DashboardOutlined />,
-  },
-  {
-    text: "Command Log",
-    description: "Recent screen actions",
-    path: "/commands",
-    icon: <HistoryOutlined />,
-  },
-  {
-    text: "Documentation",
-    description: "Help and instructions",
-    path: "/documentation",
-    icon: <DescriptionOutlined />,
-  },
+  { text: "Dashboard", description: "Screen overview", path: "/", icon: <DashboardOutlined /> },
+  { text: "Command Log", description: "Recent screen actions", path: "/commands", icon: <HistoryOutlined /> },
+  { text: "Documentation", description: "Help and instructions", path: "/documentation", icon: <DescriptionOutlined /> },
 ];
 
 function Sidebar({ onNavigate }) {
   const location = useLocation();
   const navigate = useNavigate();
   const { logout } = useAuth();
+  const theme = useTheme();
 
   function handleNavigation(path) {
     navigate(path);
-
-    if (onNavigate) {
-      onNavigate();
-    }
+    if (onNavigate) onNavigate();
   }
 
   function handleLogout() {
@@ -65,20 +49,11 @@ function Sidebar({ onNavigate }) {
         minHeight: "100%",
         display: "flex",
         flexDirection: "column",
-        backgroundColor: "#ffffff",
+        backgroundColor: "background.paper",
       }}
     >
-      <Toolbar
-        sx={{
-          minHeight: "68px !important",
-          px: 2.5,
-        }}
-      >
-        <Stack
-          direction="row"
-          spacing={1.5}
-          alignItems="center"
-        >
+      <Toolbar sx={{ minHeight: "68px !important", px: 2.5 }}>
+        <Stack direction="row" spacing={1.5} alignItems="center">
           <Box
             sx={{
               width: 42,
@@ -86,25 +61,18 @@ function Sidebar({ onNavigate }) {
               display: "grid",
               placeItems: "center",
               borderRadius: 2.5,
-              backgroundColor: "#e9f2fb",
-              color: "#0b5fa5",
+              backgroundColor: "primary.light",
+              color: "primary.main",
             }}
           >
             <TvOutlined />
           </Box>
 
           <Box>
-            <Typography
-              fontWeight={750}
-              color="#17324d"
-            >
+            <Typography fontWeight={750} color="text.primary">
               Screen Control
             </Typography>
-
-            <Typography
-              variant="caption"
-              color="text.secondary"
-            >
+            <Typography variant="caption" color="text.secondary">
               IT Operations
             </Typography>
           </Box>
@@ -117,11 +85,7 @@ function Sidebar({ onNavigate }) {
         <Typography
           variant="overline"
           color="text.secondary"
-          sx={{
-            px: 1.5,
-            fontWeight: 700,
-            letterSpacing: 1,
-          }}
+          sx={{ px: 1.5, fontWeight: 700, letterSpacing: 1 }}
         >
           Navigation
         </Typography>
@@ -141,21 +105,17 @@ function Sidebar({ onNavigate }) {
                   py: 1.2,
                   borderRadius: 2.5,
                   "&.Mui-selected": {
-                    backgroundColor: "#e9f2fb",
-                    color: "#0b5fa5",
+                    backgroundColor: "primary.light",
+                    color: "primary.main",
                   },
                   "&.Mui-selected:hover": {
-                    backgroundColor: "#dcecf9",
+                    backgroundColor:
+                      theme.palette.mode === "dark" ? "rgba(255,255,255,0.08)" : "#dcecf9",
                   },
                 }}
               >
                 <ListItemIcon
-                  sx={{
-                    minWidth: 42,
-                    color: selected
-                      ? "#0b5fa5"
-                      : "text.secondary",
-                  }}
+                  sx={{ minWidth: 42, color: selected ? "primary.main" : "text.secondary" }}
                 >
                   {item.icon}
                 </ListItemIcon>
@@ -163,13 +123,8 @@ function Sidebar({ onNavigate }) {
                 <ListItemText
                   primary={item.text}
                   secondary={item.description}
-                  primaryTypographyProps={{
-                    fontWeight: selected ? 700 : 600,
-                    fontSize: "0.95rem",
-                  }}
-                  secondaryTypographyProps={{
-                    fontSize: "0.72rem",
-                  }}
+                  primaryTypographyProps={{ fontWeight: selected ? 700 : 600, fontSize: "0.95rem" }}
+                  secondaryTypographyProps={{ fontSize: "0.72rem" }}
                 />
               </ListItemButton>
             );
@@ -190,28 +145,18 @@ function Sidebar({ onNavigate }) {
             borderRadius: 2.5,
             color: "error.main",
             "&:hover": {
-              backgroundColor: "#fff1f0",
+              backgroundColor: theme.palette.mode === "dark" ? "rgba(211,47,47,0.12)" : "#fff1f0",
             },
           }}
         >
-          <ListItemIcon
-            sx={{
-              minWidth: 42,
-              color: "error.main",
-            }}
-          >
+          <ListItemIcon sx={{ minWidth: 42, color: "error.main" }}>
             <LogoutOutlined />
           </ListItemIcon>
-
           <ListItemText
             primary="Sign out"
             secondary="End current session"
-            primaryTypographyProps={{
-              fontWeight: 700,
-            }}
-            secondaryTypographyProps={{
-              fontSize: "0.72rem",
-            }}
+            primaryTypographyProps={{ fontWeight: 700 }}
+            secondaryTypographyProps={{ fontSize: "0.72rem" }}
           />
         </ListItemButton>
       </Box>
