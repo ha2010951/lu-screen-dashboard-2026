@@ -12,17 +12,18 @@ import {
   Divider,
   Stack,
   Typography,
+  useTheme,
 } from "@mui/material";
 
-function getStatusDetails(status) {
+function getStatusDetails(status, isDark) {
   const value = String(status || "").toLowerCase();
 
   if (value === "on" || value === "online") {
     return {
       label: "Online",
       color: "success",
-      accent: "#2e7d32",
-      background: "#edf8f0",
+      accent: isDark ? "#4caf6e" : "#2e7d32",
+      background: isDark ? "rgba(76,175,110,0.14)" : "#edf8f0",
     };
   }
 
@@ -31,7 +32,7 @@ function getStatusDetails(status) {
       label: "Standby",
       color: "warning",
       accent: "#ed6c02",
-      background: "#fff7eb",
+      background: isDark ? "rgba(237,108,2,0.14)" : "#fff7eb",
     };
   }
 
@@ -40,15 +41,15 @@ function getStatusDetails(status) {
       label: "Sleep",
       color: "info",
       accent: "#0288d1",
-      background: "#eef8fd",
+      background: isDark ? "rgba(2,136,209,0.14)" : "#eef8fd",
     };
   }
 
   return {
     label: "Unavailable",
     color: "default",
-    accent: "#7b8794",
-    background: "#f4f6f8",
+    accent: isDark ? "#9fb0c3" : "#7b8794",
+    background: isDark ? "rgba(255,255,255,0.06)" : "#f4f6f8",
   };
 }
 
@@ -76,6 +77,7 @@ function InfoRow({ icon, label, value }) {
         variant="body2"
         fontWeight={600}
         textAlign="right"
+        color="text.primary"
       >
         {value}
       </Typography>
@@ -84,20 +86,27 @@ function InfoRow({ icon, label, value }) {
 }
 
 function ClassroomCard({ classroom, onOpen }) {
-  const status = getStatusDetails(classroom.status);
+  const theme = useTheme();
+  const isDark = theme.palette.mode === "dark";
+  const status = getStatusDetails(classroom.status, isDark);
 
   return (
     <Card
       sx={{
         height: "100%",
         borderRadius: 4,
-        border: "1px solid #dfe7ef",
-        boxShadow: "0 8px 24px rgba(28, 55, 90, 0.08)",
+        border: "1px solid",
+        borderColor: "divider",
+        boxShadow: isDark
+          ? "0 8px 24px rgba(0, 0, 0, 0.4)"
+          : "0 8px 24px rgba(28, 55, 90, 0.08)",
         overflow: "hidden",
         transition: "transform 0.2s ease, box-shadow 0.2s ease",
         "&:hover": {
           transform: "translateY(-4px)",
-          boxShadow: "0 14px 30px rgba(28, 55, 90, 0.14)",
+          boxShadow: isDark
+            ? "0 14px 30px rgba(0, 0, 0, 0.55)"
+            : "0 14px 30px rgba(28, 55, 90, 0.14)",
         },
       }}
     >
@@ -123,7 +132,7 @@ function ClassroomCard({ classroom, onOpen }) {
                 <Typography
                   variant="h5"
                   fontWeight={750}
-                  color="#17324d"
+                  color="text.primary"
                 >
                   {classroom.classroom}
                 </Typography>
@@ -199,7 +208,7 @@ function ClassroomCard({ classroom, onOpen }) {
                 borderRadius: 2.5,
                 textTransform: "none",
                 fontWeight: 700,
-                backgroundColor: "#0b5fa5",
+                backgroundColor: "primary.main",
               }}
             >
               View screen details

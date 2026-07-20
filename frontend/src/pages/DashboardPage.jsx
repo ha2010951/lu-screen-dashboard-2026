@@ -180,9 +180,12 @@ function DashboardPage() {
           p: { xs: 3, md: 4 },
           mb: 4,
           borderRadius: 4,
-          background:
-            "linear-gradient(135deg, #f8fbff 0%, #eef5fc 100%)",
-          border: "1px solid #dce7f2",
+          background: (theme) =>
+            theme.palette.mode === "dark"
+              ? "linear-gradient(135deg, #16202b 0%, #1b2836 100%)"
+              : "linear-gradient(135deg, #f8fbff 0%, #eef5fc 100%)",
+          border: "1px solid",
+          borderColor: "divider",
         }}
       >
         <Stack
@@ -205,7 +208,7 @@ function DashboardPage() {
               variant="h3"
               fontWeight={750}
               sx={{
-                color: "#17324d",
+                color: "text.primary",
                 mt: 0.5,
                 fontSize: {
                   xs: "2rem",
@@ -240,15 +243,16 @@ function DashboardPage() {
                 px: 2.5,
                 py: 1.5,
                 borderRadius: 3,
-                backgroundColor: "white",
-                border: "1px solid #dce7f2",
+                backgroundColor: "background.paper",
+                border: "1px solid",
+                borderColor: "divider",
                 minWidth: 95,
               }}
             >
               <Typography variant="caption" color="text.secondary">
                 Total
               </Typography>
-              <Typography variant="h5" fontWeight={700}>
+              <Typography variant="h5" fontWeight={700} color="text.primary">
                 {summary.total}
               </Typography>
             </Box>
@@ -258,8 +262,11 @@ function DashboardPage() {
                 px: 2.5,
                 py: 1.5,
                 borderRadius: 3,
-                backgroundColor: "#edf8f0",
-                border: "1px solid #cce8d2",
+                backgroundColor: (theme) =>
+                  theme.palette.mode === "dark" ? "rgba(76,175,110,0.12)" : "#edf8f0",
+                border: "1px solid",
+                borderColor: (theme) =>
+                  theme.palette.mode === "dark" ? "rgba(76,175,110,0.3)" : "#cce8d2",
                 minWidth: 95,
               }}
             >
@@ -280,8 +287,11 @@ function DashboardPage() {
                 px: 2.5,
                 py: 1.5,
                 borderRadius: 3,
-                backgroundColor: "#fff4f2",
-                border: "1px solid #f0d2cd",
+                backgroundColor: (theme) =>
+                  theme.palette.mode === "dark" ? "rgba(239,83,80,0.12)" : "#fff4f2",
+                border: "1px solid",
+                borderColor: (theme) =>
+                  theme.palette.mode === "dark" ? "rgba(239,83,80,0.3)" : "#f0d2cd",
                 minWidth: 95,
               }}
             >
