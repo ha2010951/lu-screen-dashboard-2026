@@ -118,20 +118,42 @@ function DashboardPage() {
     loadPanels();
   }, []);
 
-  const handlePanelUpdate = useCallback((updatedPanel) => {
-    const normalized = normalizePanel(updatedPanel);
+ const handlePanelUpdate = useCallback((rawPanel) => {
+    if (!rawPanel?.id) return;
+
+    const patch = {};
+
+    if (rawPanel.status !== undefined) patch.status = rawPanel.status;
+    if (rawPanel.power !== undefined) patch.power = rawPanel.power;
+    if (rawPanel.power_status !== undefined) patch.power = rawPanel.power_status;
+    if (rawPanel.volume !== undefined) patch.volume = rawPanel.volume;
+    if (rawPanel.muted !== undefined || rawPanel.is_muted !== undefined) {
+      patch.muted = Boolean(rawPanel.muted ?? rawPanel.is_muted);
+    }
+    if (rawPanel.source !== undefined || rawPanel.input_source !== undefined) {
+      patch.source = formatSource(rawPanel.source || rawPanel.input_source);
+    }
+    if (
+      rawPanel.last_polled !== undefined ||
+      rawPanel.lastPolled !== undefined ||
+      rawPanel.updated_at !== undefined
+    ) {
+      patch.lastPolled = formatDate(
+        rawPanel.last_polled || rawPanel.lastPolled || rawPanel.updated_at
+      );
+    }
 
     setClassrooms((current) =>
       current.map((panel) =>
-        String(panel.id) === String(normalized.id)
-          ? { ...panel, ...normalized }
+        String(panel.id) === String(rawPanel.id)
+          ? { ...panel, ...patch }
           : panel
       )
     );
 
     setSelectedClassroom((current) =>
-      current && String(current.id) === String(normalized.id)
-        ? { ...current, ...normalized }
+      current && String(current.id) === String(rawPanel.id)
+        ? { ...current, ...patch }
         : current
     );
   }, []);
