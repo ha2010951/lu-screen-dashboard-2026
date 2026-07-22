@@ -36,10 +36,33 @@
 const net = require("net");
 
 const COMMANDS = {
+
+  //POST
   power_on:         Buffer.from([0xF6, 0x01, 0x01, 0x01, 0xF9, 0x6F]),
   power_standby:    Buffer.from([0xF6, 0x01, 0x01, 0x00, 0xF8, 0x6F]),
   power_sleep:      Buffer.from([0xF6, 0x01, 0x05, 0x00, 0xFC, 0x6F]),
-  get_power:        Buffer.from([0xF6, 0x01, 0x02, 0x00, 0xF9, 0x6F]),
+
+  volume_up:        Buffer.from([0xF6, 0x0C, 0x00, 0x01, 0x03, 0x6F]),
+  volume_down:      Buffer.from([0xF6, 0x0C, 0x00, 0x00, 0x02, 0x6F]),
+  mute_on:          Buffer.from([0xF6, 0x02, 0x00, 0x01, 0xF9, 0x6F]),
+  mute_off:         Buffer.from([0xF6, 0x02, 0x00, 0x00, 0xF8, 0x6F]),
+
+  source_av:        Buffer.from([0xF6, 0x30, 0x01, 0x01, 0x28, 0x6F]),
+  source_vga1:      Buffer.from([0xF6, 0x30, 0x01, 0x08, 0x2F, 0x6F]),
+  source_hdmi1:     Buffer.from([0xF6, 0x30, 0x01, 0x09, 0x30, 0x6F]),
+  source_hdmi2:     Buffer.from([0xF6, 0x30, 0x01, 0x0A, 0x31, 0x6F]),
+  source_hdmi3:     Buffer.from([0xF6, 0x30, 0x01, 0x13, 0x3A, 0x6F]),
+  source_usbc:      Buffer.from([0xF6, 0x30, 0x01, 0x0C, 0x33, 0x6F]),
+  source_dp:        Buffer.from([0xF6, 0x30, 0x01, 0x14, 0x3B, 0x6F]),
+  source_ops:       Buffer.from([0xF6, 0x30, 0x01, 0x12, 0x39, 0x6F]),
+  source_android:   Buffer.from([0xF6, 0x30, 0x01, 0x0B, 0x32, 0x6F]),
+
+  freeze_on:        Buffer.from([0xF6, 0x32, 0x01, 0x01, 0x2A, 0x6F]),
+  freeze_off:       Buffer.from([0xF6, 0x32, 0x01, 0x02, 0x2B, 0x6F]),
+
+  //GET
+
+  //get_power:        Buffer.from([0xF6, 0x01, 0x02, 0x00, 0xF9, 0x6F]), //Dont use this one, it is not reliable. Use get_power_v2 instead.
   get_power_v2:     Buffer.from([0xF6, 0x01, 0x03, 0xFF, 0xF9, 0x6F]), // firmware 2.1.0+
 
   get_firmware:     Buffer.from([0xF6, 0x03, 0x01, 0x00, 0xFA, 0x6F]),
@@ -48,33 +71,12 @@ const COMMANDS = {
   get_serial:       Buffer.from([0xF6, 0x03, 0x04, 0x00, 0xFD, 0x6F]),
   get_model:        Buffer.from([0xF6, 0x03, 0x05, 0x00, 0xFE, 0x6F]),
 
-  volume_up:        Buffer.from([0xF6, 0x0C, 0x00, 0x01, 0x03, 0x6F]),
-  volume_down:      Buffer.from([0xF6, 0x0C, 0x00, 0x00, 0x02, 0x6F]),
   get_volume:       Buffer.from([0xF6, 0x0C, 0x02, 0x00, 0x04, 0x6F]),
-
-  mute_on:          Buffer.from([0xF6, 0x02, 0x00, 0x01, 0xF9, 0x6F]),
-  mute_off:         Buffer.from([0xF6, 0x02, 0x00, 0x00, 0xF8, 0x6F]),
   get_mute:         Buffer.from([0xF6, 0x02, 0x02, 0x00, 0xFA, 0x6F]),
 
-  source_av:        Buffer.from([0xF6, 0x30, 0x01, 0x01, 0x28, 0x6F]),
-  source_vga1:      Buffer.from([0xF6, 0x30, 0x01, 0x08, 0x2F, 0x6F]),
-  source_hdmi1:     Buffer.from([0xF6, 0x30, 0x01, 0x09, 0x30, 0x6F]),
-  source_hdmi2:     Buffer.from([0xF6, 0x30, 0x01, 0x0A, 0x31, 0x6F]),
-  source_hdmi3:     Buffer.from([0xF6, 0x30, 0x01, 0x13, 0x3A, 0x6F]),
-  source_dp:        Buffer.from([0xF6, 0x30, 0x01, 0x14, 0x3B, 0x6F]),
-  source_ops:       Buffer.from([0xF6, 0x30, 0x01, 0x12, 0x39, 0x6F]),
-  source_android:   Buffer.from([0xF6, 0x30, 0x01, 0x0B, 0x32, 0x6F]),
   get_source:       Buffer.from([0xF6, 0x30, 0x02, 0x00, 0x28, 0x6F]),
 
-  freeze_on:        Buffer.from([0xF6, 0x32, 0x01, 0x01, 0x2A, 0x6F]),
-  freeze_off:       Buffer.from([0xF6, 0x32, 0x01, 0x02, 0x2B, 0x6F]),
   get_freeze:       Buffer.from([0xF6, 0x32, 0x02, 0x00, 0x2A, 0x6F]),
-
-  // Confirmed on real hardware by Person A: selecting USB-C on the panel
-  // and running get_source returns this byte (0x0C), distinct from
-  // HDMI3 (0x13) — the earlier name collision is resolved and this code
-  // is no longer UNVERIFIED.
-  source_usbc:      Buffer.from([0xF6, 0x30, 0x01, 0x0C, 0x33, 0x6F]),
 };
 
 // Nothing left here for now — kept as the home for any future codes that
@@ -141,13 +143,7 @@ function sendCommand(ip, cmdOrName, timeoutMs = 5000) {
   });
 }
 
-/**
- * Frame: F6 [cmd] [type] [data] [checksum] 6F
- * The data byte sits 3 bytes from the end (before checksum + terminator),
- * NOT 2 bytes from the end — that position is the checksum byte.
- * Verified on real hardware: get_power response F6 01 02 01 FA 6F ->
- * data byte 0x01 ("on") is at index 3 = buf.length - 3.
- */
+
 function parsePowerStatus(buf) {
   if (!buf || buf.length < 3) return "unknown";
   const map = { 0x01: "on", 0x02: "standby", 0x03: "sleep" };
@@ -179,14 +175,13 @@ module.exports = {
   parsePowerStatus, parseVolume, parseMuteStatus, parseAscii,
 };
 
-// On-site test harness — run directly against a real panel:
-//   node promethean.js 172.21.65.212 get_power
-//   node promethean.js 172.21.65.212 volume_set 50
+
 if (require.main === module) {
   const [ip, name, value] = process.argv.slice(2);
   if (!ip || !name) {
     console.log("Usage: node promethean.js <panel_ip> <command> [value]");
     console.log("Known commands:", Object.keys(COMMANDS).join(", "));
+    console.log("Also: volume_set <0-100>, keyboard (interactive Up/Down volume control)");
     process.exit(1);
   }
 
@@ -204,7 +199,7 @@ if (require.main === module) {
 
     console.log("Response:", resp.length ? resp.toString("hex").toUpperCase() : "(no response)");
 
-    if (["get_power", "get_power_v2"].includes(name)) console.log("-> Power status:", parsePowerStatus(resp));
+    if (name === "get_power_v2") console.log("-> Power status:", parsePowerStatus(resp));
     else if (name === "get_volume") console.log("-> Volume:", parseVolume(resp));
     else if (name === "get_mute") console.log("-> Muted:", parseMuteStatus(resp));
     else if (["get_firmware", "get_touch_fw", "get_touch_serial", "get_serial", "get_model"].includes(name))
