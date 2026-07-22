@@ -18,6 +18,7 @@
 
 const pool = require("./db");
 const promethean = require("./promethean");
+const net = require("net"); //temp
 
 const POLL_INTERVAL_MS = 30000;
 
@@ -45,18 +46,32 @@ function parseSource(buf) {
   return SOURCE_BYTE_MAP[buf[buf.length - 3]] || "unknown";
 }
 
+function isPortOpen(ip, port = 5000, timeoutMs = 3000) {
+  return new Promise((resolve) => {
+    const socket = new net.Socket();
+    socket.setTimeout(timeoutMs);
+    socket.once("connect", () => { socket.destroy(); resolve(true); });
+    socket.once("timeout", () => { socket.destroy(); resolve(false); });
+    socket.once("error", () => resolve(false));
+    socket.connect(port, ip);
+  });
+}
+
 async function pollPanel(panel) {
   const { id, ip_address } = panel;
   try {
-    const [powerResp, volumeResp, muteResp, sourceResp] = await Promise.all([
-      promethean.sendCommand(ip_address, "get_power_v2"),
+    const powerReachable = await isPortOpen(ip_address); // replaces get_power_v2 entirely
+
+    const [volumeResp, muteResp, sourceResp] = await Promise.all([
+      //promethean.sendCommand(ip_address, "get_power_v2"), // Up in parameters add: powerResp,
       promethean.sendCommand(ip_address, "get_volume"),
       promethean.sendCommand(ip_address, "get_mute"),
       promethean.sendCommand(ip_address, "get_source"),
     ]);
 
     const status = {
-      power: promethean.parsePowerStatus(powerResp),
+      //power: promethean.parsePowerStatus(powerResp),
+      power: powerReachable ? "tcp_reachable" : "offline",
       volume: promethean.parseVolume(volumeResp),
       muted: promethean.parseMuteStatus(muteResp),
       source: parseSource(sourceResp),
