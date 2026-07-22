@@ -92,10 +92,16 @@ function DashboardPage() {
   const [classrooms, setClassrooms] = useState([]);
   const [selectedClassroom, setSelectedClassroom] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [usingDemoData, setUsingDemoData] = useState(false);
+  const [lastDashboardRefresh, setLastDashboardRefresh] = useState(null);
 
-  async function loadPanels() {
-    setLoading(true);
+  async function loadPanels({ silent = false } = {}) {
+    if (silent) {
+      setRefreshing(true);
+    } else {
+      setLoading(true);
+    }
 
     try {
       const data = await getPanels();
@@ -106,16 +112,24 @@ function DashboardPage() {
 
       setClassrooms(panelList.map(normalizePanel));
       setUsingDemoData(false);
+      setLastDashboardRefresh(new Date());
     } catch (error) {
       console.error("Unable to load panels:", error);
       setUsingDemoData(true);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   }
 
   useEffect(() => {
     loadPanels();
+
+    const refreshInterval = setInterval(() => {
+      loadPanels({ silent: true });
+    }, 35000);
+
+    return () => clearInterval(refreshInterval);
   }, []);
 
  const handlePanelUpdate = useCallback((rawPanel) => {
@@ -201,6 +215,49 @@ function DashboardPage() {
 
   return (
     <Container maxWidth="xl" sx={{ py: 4 }}>
+      <Stack
+        direction={{ xs: "column", sm: "row" }}
+        justifyContent="flex-end"
+        alignItems={{ xs: "flex-start", sm: "center" }}
+        spacing={1.5}
+        sx={{ mb: 2 }}
+      >
+        {refreshing && (
+          <Stack
+            direction="row"
+            spacing={1}
+            alignItems="center"
+            sx={{
+              px: 1.5,
+              py: 0.8,
+              borderRadius: 2,
+              backgroundColor: "rgba(11, 95, 165, 0.08)",
+              color: "primary.main",
+            }}
+          >
+            <CircularProgress size={16} />
+            <Typography variant="body2" fontWeight={700}>
+              Refreshing dashboard...
+            </Typography>
+          </Stack>
+        )}
+
+        <Typography variant="body2" color="text.secondary">
+          Dashboard refreshed:
+          {" "}
+          {lastDashboardRefresh
+            ? lastDashboardRefresh.toLocaleString("en-GB", {
+                day: "2-digit",
+                month: "short",
+                year: "numeric",
+                hour: "2-digit",
+                minute: "2-digit",
+                second: "2-digit",
+              })
+            : "Not yet"}
+        </Typography>
+      </Stack>
+
       <Paper
         elevation={0}
         sx={{

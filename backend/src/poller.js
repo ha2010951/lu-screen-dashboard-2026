@@ -49,7 +49,7 @@ async function pollPanel(panel) {
   const { id, ip_address } = panel;
   try {
     const [powerResp, volumeResp, muteResp, sourceResp] = await Promise.all([
-      promethean.sendCommand(ip_address, "get_power"),
+      promethean.sendCommand(ip_address, "get_power_v2"),
       promethean.sendCommand(ip_address, "get_volume"),
       promethean.sendCommand(ip_address, "get_mute"),
       promethean.sendCommand(ip_address, "get_source"),
