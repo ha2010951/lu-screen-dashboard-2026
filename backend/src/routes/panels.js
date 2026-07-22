@@ -66,6 +66,20 @@ function normalizeSource(value) {
   return sourceMap[source];
 }
 
+// Insert a row into command_log for a real user-triggered action.
+async function logCommand({ panelId, command, value, success, errorMsg }) {
+  try {
+    await pool.query(
+      `INSERT INTO command_log (panel_id, command, value, sent_by, success, error_msg, ts)
+       VALUES ($1, $2, $3, $4, $5, $6, NOW())`,
+      [panelId, command, value ?? null, "dashboard:user", success, errorMsg ?? null]
+    );
+  } catch (logErr) {
+    // Never let a logging failure break the actual command response.
+    console.error("Failed to write command_log row:", logErr.message);
+  }
+}
+
 // GET all panels with their latest stored status
 router.get("/", async (req, res) => {
   try {
@@ -96,6 +110,39 @@ router.get("/", async (req, res) => {
     res.status(500).json({
       ok: false,
       error: "Failed to load panels",
+    });
+  }
+});
+
+// GET recent command history, joined with panel name/room for display
+router.get("/commands", async (req, res) => {
+  try {
+    const { rows } = await pool.query(`
+      SELECT
+        c.id,
+        c.panel_id,
+        p.name AS panel_name,
+        p.room,
+        c.command,
+        c.value,
+        c.success,
+        c.error_msg,
+        c.ts
+      FROM command_log c
+      LEFT JOIN panels p
+        ON c.panel_id = p.id
+      WHERE c.sent_by = 'dashboard:user'
+      ORDER BY c.ts DESC
+      LIMIT 100
+    `);
+
+    res.json(rows);
+  } catch (error) {
+    console.error("Failed to load command history:", error.message);
+
+    res.status(500).json({
+      ok: false,
+      error: "Failed to load command history",
     });
   }
 });
@@ -215,6 +262,17 @@ router.post("/:id/command", async (req, res) => {
 
     const updatedPanel = await getPanel(panelId);
 
+    // Log successful real user command (skip refresh_status — it's a no-op passthrough, not a real action).
+    if (command !== "refresh_status") {
+      await logCommand({
+        panelId,
+        command,
+        value,
+        success: true,
+        errorMsg: null,
+      });
+    }
+
     res.json({
       ok: true,
       message: "Command sent to Promethean screen",
@@ -227,6 +285,16 @@ router.post("/:id/command", async (req, res) => {
       `Panel ${panelId} command failed:`,
       error.message
     );
+
+    if (command !== "refresh_status") {
+      await logCommand({
+        panelId,
+        command,
+        value,
+        success: false,
+        errorMsg: error.message || "Failed to send panel command",
+      });
+    }
 
     res.status(500).json({
       ok: false,
