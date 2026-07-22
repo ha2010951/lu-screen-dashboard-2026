@@ -66,6 +66,20 @@ function normalizeSource(value) {
   return sourceMap[source];
 }
 
+// Insert a row into command_log for a real user-triggered action.
+async function logCommand({ panelId, command, value, success, errorMsg }) {
+  try {
+    await pool.query(
+      `INSERT INTO command_log (panel_id, command, value, sent_by, success, error_msg, ts)
+       VALUES ($1, $2, $3, $4, $5, $6, NOW())`,
+      [panelId, command, value ?? null, "dashboard:user", success, errorMsg ?? null]
+    );
+  } catch (logErr) {
+    // Never let a logging failure break the actual command response.
+    console.error("Failed to write command_log row:", logErr.message);
+  }
+}
+
 // GET all panels with their latest stored status
 router.get("/", async (req, res) => {
   try {
@@ -215,6 +229,17 @@ router.post("/:id/command", async (req, res) => {
 
     const updatedPanel = await getPanel(panelId);
 
+    // Log successful real user command (skip refresh_status — it's a no-op passthrough, not a real action).
+    if (command !== "refresh_status") {
+      await logCommand({
+        panelId,
+        command,
+        value,
+        success: true,
+        errorMsg: null,
+      });
+    }
+
     res.json({
       ok: true,
       message: "Command sent to Promethean screen",
@@ -227,6 +252,16 @@ router.post("/:id/command", async (req, res) => {
       `Panel ${panelId} command failed:`,
       error.message
     );
+
+    if (command !== "refresh_status") {
+      await logCommand({
+        panelId,
+        command,
+        value,
+        success: false,
+        errorMsg: error.message || "Failed to send panel command",
+      });
+    }
 
     res.status(500).json({
       ok: false,

@@ -14,45 +14,95 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import api from "../api/axios";
 
-const commands = [
-  {
-    id: 1,
-    classroom: "A101",
-    command: "Power On",
-    timestamp: "19 Jul 2026, 10:20",
-    result: "Success",
-  },
-  {
-    id: 2,
-    classroom: "A102",
-    command: "Refresh Status",
-    timestamp: "19 Jul 2026, 10:18",
-    result: "Error",
-  },
-  {
-    id: 3,
-    classroom: "A106",
-    command: "Volume Set to 72",
-    timestamp: "19 Jul 2026, 10:16",
-    result: "Success",
-  },
-];
+function formatTimestamp(ts) {
+  const date = new Date(ts);
+  return date.toLocaleString("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function formatCommandLabel(command, value) {
+  const labels = {
+    power_on: "Power On",
+    power_off: "Power Off",
+    power_standby: "Power Standby",
+    power_sleep: "Power Sleep",
+    volume_up: "Volume Up",
+    volume_down: "Volume Down",
+    volume_set: value != null ? `Volume Set to ${value}` : "Volume Set",
+    mute_on: "Mute On",
+    mute_off: "Mute Off",
+    mute_toggle: "Mute Toggle",
+    source_set: value ? `Source Set to ${value}` : "Source Set",
+  };
+
+  return labels[command] || command;
+}
 
 function CommandLogPage() {
   const [search, setSearch] = useState("");
+  const [commands, setCommands] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const fetchCommands = async () => {
+      try {
+        const response = await api.get("/panels/commands");
+
+        if (isMounted) {
+          setCommands(response.data);
+          setError(null);
+        }
+      } catch (err) {
+        console.error("Failed to fetch command history:", err.message);
+
+        if (isMounted) {
+          setError("Failed to load command history.");
+        }
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    fetchCommands();
+
+    // Match the dashboard's refresh cadence — adjust interval if the
+    // dashboard's own polling interval is different from a few seconds.
+    const interval = setInterval(fetchCommands, 5000);
+
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, []);
 
   const filteredCommands = useMemo(() => {
     const value = search.toLowerCase();
 
-    return commands.filter(
-      (entry) =>
-        entry.classroom.toLowerCase().includes(value) ||
-        entry.command.toLowerCase().includes(value) ||
-        entry.result.toLowerCase().includes(value)
-    );
-  }, [search]);
+    return commands.filter((entry) => {
+      const room = (entry.room || "").toLowerCase();
+      const commandLabel = formatCommandLabel(entry.command, entry.value).toLowerCase();
+      const resultLabel = entry.success ? "success" : "error";
+
+      return (
+        room.includes(value) ||
+        commandLabel.includes(value) ||
+        resultLabel.includes(value)
+      );
+    });
+  }, [search, commands]);
 
   return (
     <Container maxWidth="xl" sx={{ py: 4 }}>
@@ -123,36 +173,48 @@ function CommandLogPage() {
           </TableHead>
 
           <TableBody>
-            {filteredCommands.map((entry) => (
+            {!loading && filteredCommands.map((entry) => (
               <TableRow key={entry.id} hover>
                 <TableCell sx={{ fontWeight: 600 }}>
-                  {entry.classroom}
+                  {entry.room || "—"}
                 </TableCell>
 
                 <TableCell>
-                  {entry.command}
+                  {formatCommandLabel(entry.command, entry.value)}
                 </TableCell>
 
                 <TableCell>
-                  {entry.timestamp}
+                  {formatTimestamp(entry.ts)}
                 </TableCell>
 
                 <TableCell>
                   <Chip
                     size="small"
-                    label={entry.result}
-                    color={
-                      entry.result === "Success"
-                        ? "success"
-                        : "error"
-                    }
+                    label={entry.success ? "Success" : "Error"}
+                    color={entry.success ? "success" : "error"}
                     variant="outlined"
                   />
                 </TableCell>
               </TableRow>
             ))}
 
-            {filteredCommands.length === 0 && (
+            {loading && (
+              <TableRow>
+                <TableCell colSpan={4} align="center">
+                  Loading command history...
+                </TableCell>
+              </TableRow>
+            )}
+
+            {!loading && error && (
+              <TableRow>
+                <TableCell colSpan={4} align="center">
+                  {error}
+                </TableCell>
+              </TableRow>
+            )}
+
+            {!loading && !error && filteredCommands.length === 0 && (
               <TableRow>
                 <TableCell colSpan={4} align="center">
                   No commands match your search.
