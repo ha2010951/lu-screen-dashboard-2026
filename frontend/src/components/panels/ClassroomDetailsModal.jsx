@@ -40,16 +40,8 @@ import {
 function getStatusDetails(status) {
   const value = String(status || "").toLowerCase();
 
-  if (value === "on" || value === "online") {
+  if (value === "on" || value === "online" || value === "tcp_reachable") {
     return { label: "Online", color: "success" };
-  }
-
-  if (value === "standby") {
-    return { label: "Standby", color: "warning" };
-  }
-
-  if (value === "sleep") {
-    return { label: "Sleep", color: "info" };
   }
 
   if (value === "off" || value === "offline") {

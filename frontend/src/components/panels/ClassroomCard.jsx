@@ -18,30 +18,12 @@ import {
 function getStatusDetails(status, isDark) {
   const value = String(status || "").toLowerCase();
 
-  if (value === "on" || value === "online") {
+  if (value === "on" || value === "online" || value === "tcp_reachable") {
     return {
       label: "Online",
       color: "success",
       accent: isDark ? "#4caf6e" : "#2e7d32",
       background: isDark ? "rgba(76,175,110,0.14)" : "#edf8f0",
-    };
-  }
-
-  if (value === "standby") {
-    return {
-      label: "Standby",
-      color: "warning",
-      accent: "#ed6c02",
-      background: isDark ? "rgba(237,108,2,0.14)" : "#fff7eb",
-    };
-  }
-
-  if (value === "sleep") {
-    return {
-      label: "Sleep",
-      color: "info",
-      accent: "#0288d1",
-      background: isDark ? "rgba(2,136,209,0.14)" : "#eef8fd",
     };
   }
 
